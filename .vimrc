@@ -16,6 +16,18 @@ if !filereadable(neobundle_readme)
   echo ""
   silent !mkdir -p ~/.vim/bundle
   silent !git clone https://github.com/Shougo/neobundle.vim ~/.vim/bundle/neobundle.vim/
+  let g:not_finsh_neobundle = "yes"
+
+  " Run shell script if exist on custom select language
+  
+  silent !\curl -sSL https://raw.githubusercontent.com/avelino/vim-bootstrap/master/vim_template/langs/python/python.sh | bash -s stable
+  
+  silent !\curl -sSL https://raw.githubusercontent.com/avelino/vim-bootstrap/master/vim_template/langs/javascript/javascript.sh | bash -s stable
+  
+  silent !\curl -sSL https://raw.githubusercontent.com/avelino/vim-bootstrap/master/vim_template/langs/ruby/ruby.sh | bash -s stable
+  
+  silent !\curl -sSL https://raw.githubusercontent.com/avelino/vim-bootstrap/master/vim_template/langs/html/html.sh | bash -s stable
+  
 endif
 
 " Required:
@@ -31,12 +43,13 @@ NeoBundleFetch 'Shougo/neobundle.vim'
 NeoBundle 'scrooloose/nerdtree'
 NeoBundle 'tpope/vim-commentary'
 NeoBundle 'tpope/vim-fugitive'
-NeoBundle 'kien/ctrlp.vim'
+NeoBundle 'ctrlpvim/ctrlp.vim'
 NeoBundle 'bling/vim-airline'
 NeoBundle 'airblade/vim-gitgutter'
 NeoBundle 'sheerun/vim-polyglot'
 NeoBundle 'vim-scripts/grep.vim'
 NeoBundle 'vim-scripts/CSApprox'
+NeoBundle 'bronson/vim-trailing-whitespace'
 NeoBundle 'Shougo/vimproc.vim', {
       \ 'build' : {
       \     'windows' : 'tools\\update-dll-mingw',
@@ -45,7 +58,13 @@ NeoBundle 'Shougo/vimproc.vim', {
       \     'unix' : 'make -f make_unix.mak',
       \    },
       \ }
-NeoBundle 'Shougo/vimshell.vim'
+if v:version > 702
+	NeoBundle 'Shougo/vimshell.vim'
+endif
+
+"" Vim-Session
+NeoBundle 'xolox/vim-misc'
+NeoBundle 'xolox/vim-session'
 
 "" Snippets
 NeoBundle 'SirVer/ultisnips'
@@ -53,6 +72,12 @@ NeoBundle 'honza/vim-snippets'
 
 "" Color
 NeoBundle 'tomasr/molokai'
+
+"" Vim-Bootstrap Updater
+NeoBundle 'sherzberg/vim-bootstrap-updater'
+
+let g:vim_bootstrap_langs = "javascript,ruby,python,html"
+let g:vim_bootstrap_editor = "vim"				" nvim or vim
 
 "" Custom bundles
 
@@ -63,11 +88,8 @@ NeoBundle "majutsushi/tagbar"
 NeoBundle "Yggdroot/indentLine"
 
 
-"" HTML Bundle
-NeoBundle 'amirh/HTML-AutoCloseTag'
-NeoBundle 'hail2u/vim-css3-syntax'
-NeoBundle 'gorodinskiy/vim-coloresque'
-NeoBundle 'tpope/vim-haml'
+"" Javascript Bundle
+NeoBundle "scrooloose/syntastic"
 
 
 "" Ruby Bundle
@@ -78,14 +100,19 @@ NeoBundle "thoughtbot/vim-rspec"
 NeoBundle "majutsushi/tagbar"
 
 
-"" Javascript Bundle
-NeoBundle "scrooloose/syntastic"
+"" HTML Bundle
+NeoBundle 'amirh/HTML-AutoCloseTag'
+NeoBundle 'hail2u/vim-css3-syntax'
+NeoBundle 'gorodinskiy/vim-coloresque'
+NeoBundle 'tpope/vim-haml'
+NeoBundle 'mattn/emmet-vim'
 
 
-NeoBundle 'elixir-lang/vim-elixir'
-NeoBundle 'carlosgaldino/elixir-snippets'
 
-
+"" Include user's extra bundle
+if filereadable(expand("~/.vimrc.local.bundles"))
+  source ~/.vimrc.local.bundles
+endif
 
 call neobundle#end()
 
@@ -127,34 +154,40 @@ set smartcase
 
 "" Encoding
 set bomb
-set ttyfast
 set binary
+set ttyfast
 
 "" Directories for swp files
 set nobackup
 set noswapfile
 
 set fileformats=unix,dos,mac
-set backspace=indent,eol,start
 set showcmd
 set shell=/bin/sh
 
+" session management
+let g:session_directory = "~/.vim/session"
+let g:session_autoload = "no"
+let g:session_autosave = "no"
+let g:session_command_aliases = 1
+
 "*****************************************************************************
-"" Visual Settigns
+"" Visual Settings
 "*****************************************************************************
 syntax on
 set ruler
 set number
 
 let no_buffers_menu=1
-highlight BadWhitespace ctermbg=red guibg=red
-colorscheme molokai
+if !exists('g:not_finsh_neobundle')
+  colorscheme molokai
+endif
 
 set mousemodel=popup
 set t_Co=256
 set nocursorline
 set guioptions=egmrti
-set gfn=Monospace\ 8
+set gfn=Monospace\ 10
 
 if has("gui_running")
   if has("gui_mac") || has("gui_macvim")
@@ -184,9 +217,6 @@ set scrolloff=3
 "" Status bar
 set laststatus=2
 
-"" allow backspacing over everything in insert mode
-set backspace=indent,eol,start
-
 "" Use modeline overrides
 set modeline
 set modelines=10
@@ -195,26 +225,52 @@ set title
 set titleold="Terminal"
 set titlestring=%F
 
-set statusline=%F%m%r%h%w%=(%{&ff}/%Y)\ (line\ %l\/%L,\ col\ %c)\ %{fugitive#statusline()}
+set statusline=%F%m%r%h%w%=(%{&ff}/%Y)\ (line\ %l\/%L,\ col\ %c)\
 
+if exists("*fugitive#statusline")
+  set statusline+=%{fugitive#statusline()}
+endif
+
+" vim-airline
 let g:airline_theme = 'powerlineish'
-let g:airline_enable_branch = 1
+let g:airline#extensions#syntastic#enabled = 1
+let g:airline#extensions#branch#enabled = 1
 let g:airline#extensions#tabline#enabled = 1
-let g:airline#extensions#tabline#left_sep = ' '
-let g:airline#extensions#tabline#left_alt_sep = '|'
 
+if !exists('g:airline_symbols')
+	let g:airline_symbols = {}
+endif
+
+if !exists('g:airline_powerline_fonts')
+  let g:airline#extensions#tabline#left_sep = ' '
+  let g:airline#extensions#tabline#left_alt_sep = '|'
+else
+  let g:airline#extensions#tabline#left_sep = ''
+  let g:airline#extensions#tabline#left_alt_sep = ''
+
+  " powerline symbols
+  let g:airline_left_sep = ''
+  let g:airline_left_alt_sep = ''
+  let g:airline_right_sep = ''
+  let g:airline_right_alt_sep = ''
+  let g:airline_symbols.branch = ''
+  let g:airline_symbols.readonly = ''
+  let g:airline_symbols.linenr = ''
+endif
 "*****************************************************************************
 "" Abbreviations
 "*****************************************************************************
 "" no one is really happy until you have this shortcuts
 cnoreabbrev W! w!
 cnoreabbrev Q! q!
+cnoreabbrev Qall! qall!
 cnoreabbrev Wq wq
 cnoreabbrev Wa wa
 cnoreabbrev wQ wq
 cnoreabbrev WQ wq
 cnoreabbrev W w
 cnoreabbrev Q q
+cnoreabbrev Qall qall
 
 "" NERDTree configuration
 let g:NERDTreeChDirMode=2
@@ -232,10 +288,16 @@ noremap <F3> :NERDTreeToggle<CR>
 nnoremap <silent> <leader>f :Rgrep<CR>
 let Grep_Default_Options = '-IR'
 
-" vimshell
+" vimshell.vim
 let g:vimshell_user_prompt = 'fnamemodify(getcwd(), ":~")'
 let g:vimshell_prompt =  '$ '
-nnoremap <silent> <leader>sh :VimShellCreate<CR>
+
+" terminal emulation
+if g:vim_bootstrap_editor == 'nvim'
+  nnoremap <silent> <leader>sh :terminal<CR>
+else
+  nnoremap <silent> <leader>sh :VimShellCreate<CR>
+endif
 
 "*****************************************************************************
 "" Functions
@@ -248,33 +310,33 @@ if !exists('*s:setupWrapping')
   endfunction
 endif
 
-if !exists('*TrimWhiteSpace')
-  function TrimWhiteSpace()
-    let @*=line(".")
-    %s/\s*$//e
-    ''
-  endfunction
-endif
-
 "*****************************************************************************
 "" Autocmd Rules
 "*****************************************************************************
 "" The PC is fast enough, do syntax highlight syncing from start
-autocmd BufEnter * :syntax sync fromstart
+augroup vimrc-sync-fromstart
+  autocmd!
+  autocmd BufEnter * :syntax sync fromstart
+augroup END
 
 "" Remember cursor position
-autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
+augroup vimrc-remember-cursor-position
+  autocmd!
+  autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
+augroup END
 
 "" txt
-autocmd BufRead,BufNewFile *.txt call s:setupWrapping()
+augroup vimrc-wrapping
+  autocmd!
+  autocmd BufRead,BufNewFile *.txt call s:setupWrapping()
+augroup END
 
 "" make/cmake
-autocmd FileType make setlocal noexpandtab
-autocmd BufNewFile,BufRead CMakeLists.txt setlocal filetype=cmake
-
-if has("gui_running")
-  autocmd BufWritePre * :call TrimWhiteSpace()
-endif
+augroup vimrc-make-cmake
+  autocmd!
+  autocmd FileType make setlocal noexpandtab
+  autocmd BufNewFile,BufRead CMakeLists.txt setlocal filetype=cmake
+augroup END
 
 set autoread
 
@@ -286,13 +348,20 @@ noremap <Leader>h :<C-u>split<CR>
 noremap <Leader>v :<C-u>vsplit<CR>
 
 "" Git
-noremap <Leader>ga :!git add .<CR>
-noremap <Leader>gc :!git commit -m '<C-R>="'"<CR>
-noremap <Leader>gsh :!git push<CR>
+noremap <Leader>ga :Gwrite<CR>
+noremap <Leader>gc :Gcommit<CR>
+noremap <Leader>gsh :Gpush<CR>
+noremap <Leader>gll :Gpull<CR>
 noremap <Leader>gs :Gstatus<CR>
 noremap <Leader>gb :Gblame<CR>
 noremap <Leader>gd :Gvdiff<CR>
 noremap <Leader>gr :Gremove<CR>
+
+" session management
+nnoremap <leader>so :OpenSession
+nnoremap <leader>ss :SaveSession
+nnoremap <leader>sd :DeleteSession<CR>
+nnoremap <leader>sc :CloseSession<CR>
 
 "" Tabs
 nnoremap <Tab> gt
@@ -316,7 +385,7 @@ let g:ctrlp_user_command = "find %s -type f | grep -Ev '"+ g:ctrlp_custom_ignore
 let g:ctrlp_use_caching = 0
 cnoremap <C-P> <C-R>=expand("%:p:h") . "/" <CR>
 noremap <leader>b :CtrlPBuffer<CR>
-let g:ctrlp_map = ',e'
+let g:ctrlp_map = '<leader>e'
 let g:ctrlp_open_new_file = 'r'
 
 " snippets
@@ -334,13 +403,12 @@ let g:syntastic_style_warning_symbol = '⚠'
 let g:syntastic_auto_loc_list=1
 let g:syntastic_aggregate_errors = 1
 
-" vim-airline
-let g:airline_enable_syntastic = 1
-
-"" Remove trailing whitespace on <leader>S
-nnoremap <silent> <leader>S :call TrimWhiteSpace()<cr>:let @/=''<CR>
 
 "" Copy/Paste/Cut
+if has('unnamedplus')
+  set clipboard=unnamed,unnamedplus
+endif
+
 noremap YY "+y<CR>
 noremap P "+gP<CR>
 noremap XX "+x<CR>
@@ -369,12 +437,16 @@ vmap > >gv
 
 "" Open current line on GitHub
 noremap ,o :!echo `git url`/blob/`git rev-parse --abbrev-ref HEAD`/%\#L<C-R>=line('.')<CR> \| xargs open<CR><CR>
+
 "" Custom configs
 
 " vim-python
-autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=8 colorcolumn=79
-    \ formatoptions+=croq softtabstop=4 smartindent
-    \ cinwords=if,elif,else,for,while,try,except,finally,def,class,with
+augroup vimrc-python
+  autocmd!
+  autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=8 colorcolumn=79
+      \ formatoptions+=croq softtabstop=4 smartindent
+      \ cinwords=if,elif,else,for,while,try,except,finally,def,class,with
+augroup END
 
 " jedi-vim
 let g:jedi#popup_on_dot = 0
@@ -388,6 +460,7 @@ let g:jedi#completions_command = "<C-Space>"
 
 " syntastic
 let g:syntastic_python_checkers=['python', 'flake8']
+let g:syntastic_python_flake8_post_args='--ignore=W391'
 
 " vim-airline
 let g:airline#extensions#virtualenv#enabled = 1
@@ -398,14 +471,18 @@ nmap <silent> <F4> :TagbarToggle<CR>
 let g:tagbar_autofocus = 1
 
 
+let g:javascript_enable_domhtmlcss = 1
 
 
 let g:rubycomplete_buffer_loading = 1
 let g:rubycomplete_classes_in_global = 1
 let g:rubycomplete_rails = 1
 
-autocmd BufNewFile,BufRead *.rb,*.rbw,*.gemspec setlocal filetype=ruby
-autocmd Filetype ruby setlocal ts=2 sts=2 sw=2
+augroup vimrc-ruby
+  autocmd!
+  autocmd BufNewFile,BufRead *.rb,*.rbw,*.gemspec setlocal filetype=ruby
+  autocmd Filetype ruby setlocal tabstop=2 softtabstop=2 shiftwidth=2
+augroup END
 
 " Tagbar
 nmap <silent> <F4> :TagbarToggle<CR>
@@ -423,12 +500,7 @@ let g:tagbar_type_ruby = {
 \ }
 
 
-let g:javascript_enable_domhtmlcss = 1
 
-
-" Tagbar
-nmap <silent> <F4> :TagbarToggle<CR>
-let g:tagbar_autofocus = 1
 
 
 "" Include user's local vim config

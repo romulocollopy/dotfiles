@@ -177,8 +177,8 @@ bar {
         status_command py3status -c ~/.i3/i3status.conf
         mode dock
         workspace_buttons yes
-        output DVI-I-1
-        tray_output DVI-I-1
+        output VGA1
+        tray_output VGA1
         position bottom
 
         colors {

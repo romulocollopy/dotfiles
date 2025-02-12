@@ -1,0 +1,6 @@
+.DS_Store
+.ropeproject/
+.venv/
+node_modules/
+.python-version
+tags
